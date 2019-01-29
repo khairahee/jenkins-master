@@ -3,7 +3,7 @@ FROM microdc/ubuntu-testing-container:v0.0.1
 RUN mkdir /app
 WORKDIR /app
 COPY ./ /app/
-RUN ./test.sh
+RUN ./scripts/test.sh
 
 # Skip initial setup
 ENV JAVA_OPTS -Djenkins.install.runSetupWizard=false
@@ -18,10 +18,10 @@ ENV JENKINS_PASS admin
 ENV PIP_VERSION=18.0
 
 # Set log level
-COPY log.properties /var/jenkins_home/log.properties
+COPY resources/log.properties /var/jenkins_home/log.properties
 
 # Install plugins
-COPY plugins.txt /usr/share/jenkins/ref/plugins.txt
+COPY resources/plugins.txt /usr/share/jenkins/ref/plugins.txt
 RUN /usr/local/bin/install-plugins.sh < /usr/share/jenkins/ref/plugins.txt
 
 RUN echo 2 > /usr/share/jenkins/ref/jenkins.install.UpgradeWizard.state && \
@@ -40,13 +40,13 @@ RUN apk --no-cache add su-exec docker groff python py-pip gettext procps jq && \
     apk del --purge build
 RUN [ ! -e /etc/nsswitch.conf ] && echo 'hosts: files dns' > /etc/nsswitch.conf
 
-COPY modprobe.sh /usr/local/bin/modprobe
+COPY scripts/modprobe.sh /usr/local/bin/modprobe
 
 #Install kubectl
 RUN curl -L -o /usr/bin/kubectl https://storage.googleapis.com/kubernetes-release/release/v1.11.0/bin/linux/amd64/kubectl && chmod +x /usr/bin/kubectl
 
 # Custom entry point to allow for download of jobdsl files from repos
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY download-jobdsl.sh /usr/local/bin/download-jobdsl.sh
+COPY scripts/entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY scripts/download-jobdsl.sh /usr/local/bin/download-jobdsl.sh
 
 ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/entrypoint.sh"]
