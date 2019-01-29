@@ -6,7 +6,7 @@ set -euo pipefail
 # Defaults
 JENKINS_HOME="/var/jenkins_home"
 JOBDSL_DIR="${JENKINS_HOME}/jobdsl"
-REPOS_FILE="/usr/share/jenkins/data/repos.txt"
+REPOS_FILE="/usr/share/jenkins/data/job_repos.txt"
 TEMP_REPOS_DIR="/tmp/repos"
 
 
@@ -34,12 +34,21 @@ get_job_dslfiles() {
     fi
     while IFS='' read -r repo || [[ -n "$repo" ]]; do
 
+    # Split repo by | to get project and branch
+      array=(${repo//|/ })
+      repo="${array[0]}"
+      if [ ${#array[*]} -eq 1 ]; then
+        branch="master"
+      else
+        branch="${array[1]}"
+      fi
+
       # To speed up grabbing of jobdsl files in bitbucket (github doesnt support archive!!)
       if [[ "$repo" = *"bitbucket.org"* ]]; then
         repo=$(echo "${repo}" | tr ":" "/")
         git archive --remote="ssh://git@${repo}.git" HEAD "${repo##*/}.jobdsl" | tar xvf - -C "${JOBDSL_DIR}"
       else
-        git clone -n --depth 1 "git@${repo}" "${TEMP_REPOS_DIR}/${repo#*/}"
+        git clone -n --depth 1 "git@${repo}" "${TEMP_REPOS_DIR}/${repo#*/}" -b "${branch}"
         (cd "${TEMP_REPOS_DIR}/${repo#*/}" && git checkout HEAD "${repo#*/}.jobdsl")
         mv -v "${TEMP_REPOS_DIR}/${repo#*/}/${repo#*/}.jobdsl" "${JOBDSL_DIR}"
       fi
